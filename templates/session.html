@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}{{ session.name }} - Where is my money?{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">{{ session.name }}</h2>
+                <p class="text-sm text-gray-500 mt-1">Utworzono: {{ session.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            <div class="flex gap-2">
+                <button 
+                    hx-post="/session/{{ session.id }}/toggle-readonly"
+                    hx-swap="none"
+                    onclick="this.textContent = this.textContent.includes('Włącz') ? '🔓 Włącz tryb edycji' : '🔒 Włącz tryb tylko do odczytu'; setTimeout(() => location.reload(), 500);"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition"
+                >
+                    {% if session.read_only %}🔓 Włącz tryb edycji{% else %}🔒 Włącz tryb tylko do odczytu{% endif %}
+                </button>
+            </div>
+        </div>
+        
+        {% if session.read_only %}
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        Sesja jest w trybie tylko do odczytu. Nie można dodawać nowych uczestników ani wydatków.
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="mt-4 p-4 bg-gray-50 rounded border border-gray-200">
+            <p class="text-sm text-gray-600 mb-2">Link do sesji (skopiuj i udostępnij):</p>
+            <div class="flex gap-2">
+                <input 
+                    type="text" 
+                    value="{{ request.url }}" 
+                    readonly 
+                    id="session-link"
+                    class="flex-1 px-3 py-2 bg-white border border-gray-300 rounded text-sm"
+                >
+                <button 
+                    onclick="navigator.clipboard.writeText(document.getElementById('session-link').value); this.textContent='Skopiowano!'; setTimeout(() => this.textContent='Kopiuj', 2000);"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-medium"
+                >
+                    Kopiuj
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div id="participants-section" class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Uczestnicy</h3>
+            
+            {% if not session.read_only %}
+            <form 
+                hx-post="/session/{{ session.id }}/participant/add"
+                hx-target="#participants-list"
+                hx-swap="innerHTML"
+                class="mb-4"
+            >
+                <div class="flex gap-2">
+                    <input 
+                        type="text" 
+                        name="participant_name" 
+                        placeholder="Imię uczestnika"
+                        required
+                        class="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                    >
+                    <button 
+                        type="submit"
+                        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition font-medium"
+                    >
+                        Dodaj
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+            
+            <div id="participants-list">
+                {% include "partials/participants_list.html" %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Eksport danych</h3>
+            <div class="space-y-3">
+                <a 
+                    href="/session/{{ session.id }}/export/csv"
+                    class="block w-full text-center px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-medium"
+                >
+                    📊 Eksportuj do CSV
+                </a>
+                <a 
+                    href="/session/{{ session.id }}/export/pdf"
+                    class="block w-full text-center px-4 py-3 bg-red-600 text-white rounded hover:bg-red-700 transition font-medium"
+                >
+                    📄 Eksportuj do PDF
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if not session.read_only %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Dodaj wydatek</h3>
+        {% include "partials/expense_form.html" %}
+    </div>
+    {% endif %}
+
+    <div id="expenses-settlement-section">
+        {% include "partials/expenses_and_settlement.html" %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Lista wydatków</h3>
+        
+        {% if session.expenses|length == 0 %}
+        <p class="text-gray-500 text-sm">Brak wydatków. Dodaj pierwszy wydatek powyżej.</p>
+        {% else %}
+        <div class="space-y-3">
+            {% for expense in session.expenses|reverse %}
+            <div class="p-4 border border-gray-200 rounded hover:bg-gray-50">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex-1">
+                        <h4 class="font-medium text-gray-900">{{ expense.title }}</h4>
+                        <p class="text-sm text-gray-500">{{ expense.date.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <span class="text-lg font-bold text-gray-900">{{ expense.amount_minor|format_currency }}</span>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <p><span class="font-medium">Płatnik:</span> 
+                        {% for p in session.participants %}
+                            {% if p.id == expense.payer_id %}{{ p.name }}{% endif %}
+                        {% endfor %}
+                    </p>
+                    <p><span class="font-medium">Beneficjenci:</span> 
+                        {% for bid in expense.beneficiary_ids %}
+                            {% for p in session.participants %}
+                                {% if p.id == bid %}{{ p.name }}{% if not loop.last %}, {% endif %}{% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-4 pt-4 border-t border-gray-200">
+            <div class="flex justify-between items-center">
+                <span class="font-medium text-gray-700">Suma wydatków:</span>
+                <span class="text-xl font-bold text-gray-900">
+                    {{ (session.expenses|sum(attribute='amount_minor'))|format_currency }}
+                </span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Rozliczenie</h3>
+        
+        {% if settlement.payments|length == 0 %}
+        <div class="bg-green-50 border-l-4 border-green-500 p-4">
+            <p class="text-sm text-green-700 font-medium">✅ Wszyscy są rozliczeni! Brak płatności do wykonania.</p>
+        </div>
+        {% else %}
+        <div class="space-y-3">
+            <p class="text-sm text-gray-600 mb-3">Minimalna liczba przelewów do rozliczenia wszystkich:</p>
+            {% for payment in settlement.payments %}
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900">
+                            <span class="text-red-600">{{ payment.from_participant_name }}</span>
+                            <span class="text-gray-500 mx-2">→</span>
+                            <span class="text-green-600">{{ payment.to_participant_name }}</span>
+                        </p>
+                    </div>
+                    <span class="text-lg font-bold text-blue-600">{{ payment.amount_minor|format_currency }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if settlement.balances|length > 0 %}
+        <div class="mt-6 pt-4 border-t border-gray-200">
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">Salda końcowe:</h4>
+            <div class="space-y-2">
+                {% for balance in settlement.balances %}
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-700">{{ balance.participant_name }}</span>
+                    <span class="font-medium {% if balance.balance_minor > 0 %}text-green-600{% elif balance.balance_minor < 0 %}text-red-600{% else %}text-gray-600{% endif %}">
+                        {{ balance.balance_minor|format_currency }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            <p class="text-xs text-gray-500 mt-3">
+                Wartości dodatnie = do otrzymania | Wartości ujemne = do zapłaty
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
